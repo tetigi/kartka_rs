@@ -18,7 +18,6 @@ use axum::{
 use clap::{command, Parser, Subcommand};
 use eyre::{Context, Result};
 use jsonpath_rust::JsonPath;
-use reqwest;
 use rusty_tesseract::Image;
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
@@ -106,7 +105,7 @@ struct Server {
 
 impl Server {
     fn content(&self) -> PathBuf {
-        (&self.root).join(&self.content_dir)
+        self.root.join(&self.content_dir)
     }
 
     fn search(&self, search_str: &str) -> Result<Vec<String>> {

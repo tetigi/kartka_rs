@@ -7,7 +7,6 @@ edition = "2021"
 axum = "0.8"
 clap = { version = "4.5.27", features = ["derive"] }
 eyre = "0.6"
-inquire = "0.7.5"
 jiff = "0.1"
 jsonpath-rust = "0.7"
 reqwest = { version = "0.12", features = ["json"] }

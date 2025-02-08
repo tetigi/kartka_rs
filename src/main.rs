@@ -17,7 +17,6 @@ use axum::{
 };
 use clap::{command, Parser, Subcommand};
 use eyre::{Context, Result};
-use inquire::{Password, Text};
 use jsonpath_rust::JsonPath;
 use reqwest;
 use rusty_tesseract::Image;

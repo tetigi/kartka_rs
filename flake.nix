@@ -1,5 +1,5 @@
 {
-  description = "Build a cargo project";
+  description = "Kartka v2";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";

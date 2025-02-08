@@ -31,8 +31,6 @@ struct Args {
 
 #[derive(Debug, Subcommand)]
 enum Mode {
-    Check,
-    // Ingest,
     Scan,
     Server { root: PathBuf },
     // Search,
@@ -223,7 +221,6 @@ async fn main() {
         Path::new(&env::var("HOME").expect("no home env variable set")).join(CONFIG_PATH);
 
     match args.mode {
-        Mode::Check => todo!(),
         Mode::Scan => {
             if config_path.exists() {
                 let mut contents = String::new();

@@ -27,7 +27,7 @@ struct Args {
 enum Mode {
     Scan,
     Search { query: String },
-    // Hydrate
+    Hydrate,
 }
 
 const CONFIG_PATH: &str = ".config/kartka.toml";
@@ -98,13 +98,12 @@ impl Kartka {
         Ok(())
     }
 
-    fn scan(&self) -> Result<()> {
+    fn read_and_index(&self, dir: &Path, output_name: &str) -> Result<()> {
         let mut content = String::new();
 
-        let mut entries: Vec<_> = self
-            .scans()
+        let mut entries: Vec<_> = dir
             .read_dir()
-            .context(format!("reading kartka dir: {:?}", self.scans()))?
+            .context(format!("reading dir: {:?}", dir))?
             .collect::<Result<_, _>>()?;
 
         entries.sort_by_key(|it| it.file_name());
@@ -130,8 +129,19 @@ impl Kartka {
             content.push('\n');
         }
 
+        self.upload(&UploadContent {
+            name: output_name.to_string(),
+            content,
+        })
+        .context("uploading content")?;
+
+        Ok(())
+    }
+
+    fn scan(&self) -> Result<()> {
         let timestamp = jiff::Zoned::now().timestamp().strftime("%Y_%m_%d_%H_%M_%S");
         let pdf_name = format!("{timestamp}.pdf");
+        self.read_and_index(self.scans(), &pdf_name)?;
 
         println!("converting to PDF..");
         let temp_dir = tempfile::tempdir()?;
@@ -140,21 +150,73 @@ impl Kartka {
             .arg(temp_dir.path().join(&pdf_name))
             .output()?;
 
-        self.upload(&UploadContent {
-            name: format!("{timestamp}.pdf"),
-            content,
-        })
-        .context("uploading content")?;
-
         upload_to_dropbox(temp_dir.path(), &pdf_name)?;
 
         if inquire::Confirm::new("Delete files in scan dir?")
             .with_default(false)
             .prompt()?
         {
-            for entry in entries {
-                fs::remove_file(entry.path())?;
+            for entry in self.scans().read_dir()? {
+                fs::remove_file(entry?.path())?;
             }
+        }
+
+        println!("done!");
+        Ok(())
+    }
+
+    fn rehydrate(&self) -> Result<()> {
+        // want to download all files that I don't have in my index
+        let remote_files: HashSet<_> = String::from_utf8(
+            Command::new("rclone")
+                .arg("lsf")
+                .arg("dropbox:")
+                .output()?
+                .stdout,
+        )?
+        .lines()
+        .map(|it| it.to_string())
+        .collect();
+
+        let local_files: HashSet<_> = self
+            .index()
+            .read_dir()?
+            .into_iter()
+            .map(|res| {
+                res.map_err(|e| eyre::eyre!("{e:?}")).and_then(|it| {
+                    it.file_name()
+                        .into_string()
+                        .map_err(|e| eyre::eyre!("{e:?}"))
+                })
+            })
+            .collect::<Result<_>>()?;
+
+        let temp_dir = tempfile::tempdir()?;
+
+        let missing_files = remote_files.difference(&local_files);
+        println!("found {} missing files..", &missing_files.clone().count());
+        for missing in missing_files {
+            let dest = temp_dir.path().join(missing);
+
+            println!("Pulling {missing}..");
+            Command::new("rclone")
+                .arg("copyto")
+                .arg(format!("dropbox:{missing}"))
+                .arg(&dest)
+                .output()?;
+
+            println!("Converting {missing} to pngs..");
+            Command::new("magick")
+                .arg(&dest)
+                .arg(temp_dir.path().join(format!("{missing}-%d.png")))
+                .output()?;
+
+            println!("Removing local PDF..");
+            fs::remove_file(dest)?;
+
+            println!("reading and indexing..");
+            self.read_and_index(temp_dir.path(), missing)?;
+            inquire::Confirm::new("you sure").prompt()?;
         }
 
         println!("done!");
@@ -206,6 +268,9 @@ fn main() {
         }
         Mode::Search { query } => {
             kartka.search(&query).unwrap();
+        }
+        Mode::Hydrate => {
+            kartka.rehydrate().unwrap();
         }
     };
 }

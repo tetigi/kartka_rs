@@ -85,6 +85,7 @@
           checks = self.checks.${system};
 
           packages = with pkgs; [
+            ghostscript
             imagemagick
             rclone
             ripgrep

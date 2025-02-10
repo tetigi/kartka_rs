@@ -2,6 +2,5 @@
 
 ### TODO
 
-- implement hydrate
 - cleanup structure
 - cleanup error-handling

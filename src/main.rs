@@ -194,29 +194,29 @@ impl Kartka {
         let temp_dir = tempfile::tempdir()?;
 
         let missing_files = remote_files.difference(&local_files);
-        println!("found {} missing files..", &missing_files.clone().count());
-        for missing in missing_files {
+        let num_missing = missing_files.clone().count();
+        for (i, missing) in missing_files.enumerate() {
             let dest = temp_dir.path().join(missing);
 
-            println!("Pulling {missing}..");
+            println!(
+                "({} / {}) pulling, converting, and processing: {missing}..",
+                i + 1,
+                num_missing
+            );
             Command::new("rclone")
                 .arg("copyto")
                 .arg(format!("dropbox:{missing}"))
                 .arg(&dest)
                 .output()?;
 
-            println!("Converting {missing} to pngs..");
             Command::new("magick")
                 .arg(&dest)
                 .arg(temp_dir.path().join(format!("{missing}-%d.png")))
                 .output()?;
 
-            println!("Removing local PDF..");
             fs::remove_file(dest)?;
 
-            println!("reading and indexing..");
             self.read_and_index(temp_dir.path(), missing)?;
-            inquire::Confirm::new("you sure").prompt()?;
         }
 
         println!("done!");

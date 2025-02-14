@@ -119,7 +119,6 @@ impl Kartka {
                 continue;
             }
 
-            println!("processing {:?}..", dir_entry.path());
             let contents = Image::from_path(dir_entry.path()).context("open file for OCR")?;
             let tsrt_args = rusty_tesseract::Args::default();
             let output =

@@ -191,11 +191,10 @@ impl Kartka {
             })
             .collect::<Result<_>>()?;
 
-        let temp_dir = tempfile::tempdir()?;
-
         let missing_files = remote_files.difference(&local_files);
         let num_missing = missing_files.clone().count();
         for (i, missing) in missing_files.enumerate() {
+            let temp_dir = tempfile::tempdir()?;
             let dest = temp_dir.path().join(missing);
 
             println!(

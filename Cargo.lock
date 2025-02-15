@@ -690,7 +690,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "kartka_rs"
+name = "kartka"
 version = "0.1.0"
 dependencies = [
  "clap",

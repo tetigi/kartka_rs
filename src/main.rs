@@ -77,12 +77,16 @@ impl Kartka {
             })
             .collect();
 
-        let links: Vec<_> = ids
+        let mut links: Vec<_> = ids
             .into_iter()
             .map(|it| format!("https://www.dropbox.com/home/Apps/kartka?preview={it}"))
             .collect();
 
-        println!("{links:?}");
+        links.sort();
+        links.reverse();
+        for link in links {
+            println!("{link}");
+        }
         Ok(())
     }
 
